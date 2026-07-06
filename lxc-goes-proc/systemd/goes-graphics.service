@@ -1,0 +1,7 @@
+[Unit]
+Description=Keep + serve selected EMWIN weather graphics for Home Assistant
+[Service]
+Type=oneshot
+User=goes
+Group=goes
+ExecStart=/usr/bin/python3 /opt/emwin_graphics.py

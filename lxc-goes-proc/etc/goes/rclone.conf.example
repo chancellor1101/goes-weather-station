@@ -1,0 +1,9 @@
+# Install to /etc/goes/rclone.conf (chown root:goes, chmod 0640)
+[minio]
+type = s3
+provider = Minio
+env_auth = false
+access_key_id = goessvc
+secret_access_key = REPLACE_WITH_GOES_S3_SECRET
+endpoint = http://10.10.0.10:80
+acl = private

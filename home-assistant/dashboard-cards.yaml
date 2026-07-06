@@ -1,0 +1,40 @@
+# Lovelace cards for the GOES loop + NWS alerts (entities created via the HA API:
+#   camera.goes19_ir_loop  (generic camera -> http://10.10.0.11:8099/loop.gif)
+#   sensor.goes_wx_kmob    (from the emwin_alerts.py daemon on the LXC)
+
+# --- Animated IR loop ---
+type: picture-entity
+entity: camera.goes19_ir_loop
+name: GOES-19 Infrared — Gulf Coast (3h loop)
+show_state: false
+camera_view: auto
+
+# --- Alert list (markdown; renders "no active alerts" when quiet) ---
+type: markdown
+content: >
+  {% set alerts = state_attr('sensor.goes_wx_kmob','alerts') %}
+  {% if alerts %}
+  {% for a in alerts %}
+  - **{{ a.event }}** — until {{ a.expires }}{% if a.etn %} _(#{{ a.etn }})_{% endif %}
+  {% endfor %}
+  {% else %}
+  ✅ No active NWS alerts for the Mobile (KMOB) area.
+  {% endif %}
+
+  _Source: GOES-19 EMWIN · updated {{ state_attr('sensor.goes_wx_kmob','updated') }}_
+
+# --- "Graphics" view (tab) cameras (generic cameras -> http://10.10.0.11:8099/graphics/<slug>.png) ---
+# camera.wx_spc_day1  SPC Day 1 Convective Outlook
+# camera.wx_tropical  NHC Tropical Weather Outlook
+# camera.wx_surface   Surface Analysis & Fronts
+# camera.wx_radar     National Radar / QPF
+# Each is a picture-entity card in its own section; populated by emwin_graphics.py.
+
+# --- FINAL "Graphics" tab tiles (EMWIN product -> camera) ---
+#   camera.wx_spc_outlook  MODDY1US  SPC Day 1 Convective Outlook
+#   camera.wx_spc_day1     G16CIRUS  CONUS East IR 2km (GOES-19)
+#   camera.wx_tropical     CSA001US  NHC Tropical Surface Analysis
+#   camera.wx_surface      G02HURUS  Tropical Atlantic Enhanced IR
+#   camera.wx_radar        RADSTHES  Southeast US Radar
+# (entity slugs are historical; friendly names/headings reflect actual content.)
+# EMWIN product catalog: weather.gov/media/emwin EMWIN_Image_and_Text_Data_Capture_Catalog

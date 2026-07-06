@@ -1,0 +1,15 @@
+[Unit]
+Description=goesproc — decode GOES-19 stream from goes-ns (10.10.0.9) to products
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=goes
+Group=goes
+ExecStart=/usr/local/bin/goesproc -c /etc/goesproc.conf -m packet --subscribe tcp://10.10.0.9:5004
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,20 @@
+# Secrets — never commit
+*.env
+!*.env.example
+**/rclone.conf
+!**/rclone.conf.example
+**/ha.env
+!**/ha.env.example
+secrets/
+*.token
+
+# Decoded products / generated media (except curated demo images/)
+/srv/
+.samples/
+*.backup*.json
+
+# Python / misc
+__pycache__/
+*.pyc
+.DS_Store
+.emwin_catalog.*

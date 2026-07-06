@@ -1,0 +1,8 @@
+[Unit]
+Description=Archive GOES products to MinIO every 2 min
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=2min
+AccuracySec=15s
+[Install]
+WantedBy=timers.target

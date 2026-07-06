@@ -1,0 +1,8 @@
+[Unit]
+Description=Copy decoded GOES products to MinIO (archive)
+[Service]
+Type=oneshot
+User=goes
+Group=goes
+Environment=RCLONE_CONFIG=/etc/goes/rclone.conf
+ExecStart=/usr/bin/rclone copy /srv/goes/goes19 minio:goes/goes19 --min-age 45s --transfers 8 --checkers 16 --stats 0 --log-level NOTICE

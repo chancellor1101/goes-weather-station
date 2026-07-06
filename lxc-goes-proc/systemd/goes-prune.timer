@@ -1,0 +1,7 @@
+[Unit]
+Description=Hourly prune of local GOES cache
+[Timer]
+OnBootSec=30min
+OnUnitActiveSec=1h
+[Install]
+WantedBy=timers.target

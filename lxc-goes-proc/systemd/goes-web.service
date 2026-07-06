@@ -1,0 +1,10 @@
+[Unit]
+Description=Serve GOES loop artifacts to Home Assistant
+After=network-online.target
+[Service]
+User=goes
+Group=goes
+ExecStart=/usr/bin/python3 -m http.server 8099 --directory /srv/goes/loop --bind 0.0.0.0
+Restart=always
+[Install]
+WantedBy=multi-user.target

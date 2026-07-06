@@ -1,0 +1,22 @@
+# Append these scrape jobs to prometheus.yml (Grafana host). Reload:
+#   curl -s -X POST http://localhost:9090/-/reload
+  - job_name: minio
+    metrics_path: /minio/v2/metrics/cluster   # needs MINIO_PROMETHEUS_AUTH_TYPE=public on the MinIO server
+    static_configs:
+      - targets: ['10.10.0.10:80']
+        labels: { host: minio, role: s3-storage }
+
+  - job_name: goes-ns-node
+    static_configs:
+      - targets: ['10.10.0.9:9100']
+        labels: { host: goes-ns, role: goes-receiver }
+
+  - job_name: goes-ns-goesrecv          # statsd_exporter ingesting goesrecv stats (udp :8125 -> :9102)
+    static_configs:
+      - targets: ['10.10.0.9:9102']
+        labels: { host: goes-ns, role: goes-demod }
+
+  - job_name: goes-proc-node
+    static_configs:
+      - targets: ['10.10.0.11:9100']
+        labels: { host: goes-proc, role: goes-processor }

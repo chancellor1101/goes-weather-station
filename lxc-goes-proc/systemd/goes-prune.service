@@ -1,0 +1,6 @@
+[Unit]
+Description=Prune local GOES products older than 24h (kept only for loop cache)
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/find /srv/goes -type f -mmin +1440 -delete
+ExecStartPost=/usr/bin/find /srv/goes -type d -empty -delete

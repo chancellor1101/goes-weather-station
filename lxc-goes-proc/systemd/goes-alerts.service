@@ -1,0 +1,14 @@
+[Unit]
+Description=EMWIN -> Home Assistant alert daemon (KMOB area)
+After=network-online.target
+Wants=network-online.target
+[Service]
+Type=simple
+User=goes
+Group=goes
+EnvironmentFile=/etc/goes/ha.env
+ExecStart=/usr/bin/python3 /opt/emwin_alerts.py
+Restart=always
+RestartSec=10
+[Install]
+WantedBy=multi-user.target
