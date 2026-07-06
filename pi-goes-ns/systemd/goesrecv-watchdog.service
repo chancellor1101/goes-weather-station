@@ -1,0 +1,7 @@
+[Unit]
+Description=Watchdog: restart goesrecv on SDR stall + notify Home Assistant
+After=goesrecv.service
+[Service]
+Type=oneshot
+EnvironmentFile=-/etc/goes/ha.env
+ExecStart=/usr/local/bin/goesrecv-watchdog.py
