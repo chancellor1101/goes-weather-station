@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Keep the latest of selected EMWIN graphic products (normalized to PNG for a
 stable URL), serve them for Home Assistant, and delete all other unused graphics.
+Products NOT carried on the EMWIN broadcast are fetched from public NWS web URLs.
 Served by goes-web on :8099 -> http://<lxc>:8099/graphics/<slug>.png"""
-import os, re, glob, time
+import os, re, glob, time, urllib.request
+from io import BytesIO
 from PIL import Image
 
 EMWIN = "/srv/goes/emwin"
@@ -16,8 +18,41 @@ SELECTED = {
     "CSA001US": ("tropical",  "NHC Tropical Surface Analysis"),
     "G02HURUS": ("surface",   "Tropical Atlantic (GOES-19 Enhanced IR)"),
     "G16CIRUS": ("spc_day1",  "CONUS East IR 2km (GOES-19)"),
-    "MODDY1US": ("spc_conv",  "SPC Day 1 Convective Outlook"),   # issues 06/13/1630/20Z
+    "IMGWWAUS": ("warnings",  "Active Warnings & Watches (SPC)"),
 }
+
+UA = {"User-Agent": "Mozilla/5.0 (goes-weather-station)"}
+
+def _get(url, timeout=25):
+    return urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=timeout).read()
+
+def spc_day1_png_url():
+    """SPC removed the static day1otlk.gif; the current categorical map is a
+    time-stamped 'print' PNG (day1otlk_<HHMM>_prt.png). Resolve the current
+    issuance time from the index page so we always fetch the latest."""
+    try:
+        html = _get("https://www.spc.noaa.gov/products/outlook/day1otlk.html").decode("latin-1")
+        m = re.search(r"day1otlk_(\d{4})_prt\.html", html)
+        if m:
+            return f"https://www.spc.noaa.gov/products/outlook/day1otlk_{m.group(1)}_prt.png"
+    except Exception as e:
+        print("SPC resolve failed", e)
+    return None
+
+# slug -> callable returning the current image URL (products not on the EMWIN feed)
+WEB = {"spc_conv": spc_day1_png_url}
+
+def fetch_web():
+    for slug, resolver in WEB.items():
+        url = resolver()
+        if not url:
+            continue
+        try:
+            dst = os.path.join(OUT, slug + ".png")
+            Image.open(BytesIO(_get(url))).convert("RGB").save(dst + ".tmp", "PNG")
+            os.replace(dst + ".tmp", dst)
+        except Exception as e:
+            print("web fetch failed", slug, url, e)
 
 def newest(pid):
     pat = re.compile(rf"-{re.escape(pid)}\.(GIF|JPG|PNG)$", re.I)
@@ -27,6 +62,7 @@ def newest(pid):
 
 def main():
     os.makedirs(OUT, exist_ok=True)
+    fetch_web()
     for pid, (slug, _name) in SELECTED.items():
         src = newest(pid)
         if not src:
