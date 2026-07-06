@@ -1,18 +1,20 @@
 #!/usr/bin/env python3
 """Guard against SDR USB re-enumeration. goesrecv keeps running but holds a dead
-device handle, emitting all-zero stats (omega/gain=0). Detect, auto-restart,
-publish a reception-health sensor to Home Assistant, and push a notification.
+device handle, emitting all-zero stats (omega/gain=0). This watchdog auto-restarts
+goesrecv on a stall and publishes a reception-health sensor to Home Assistant.
+
+Notification is handled by Grafana (alert: packets rate == 0 OR no-data -> HA
+webhook -> mobile push), which also catches the case where the Pi/exporter is
+entirely down -- something a Pi-side script cannot self-report.
 
 Config via environment (see /etc/goes/ha.env):
   HA_URL     e.g. http://10.10.0.5:8123
-  HA_TOKEN   HA long-lived token
-  HA_NOTIFY  notify service to call (default: notify.notify)
+  HA_TOKEN   HA long-lived token (only used to publish the health sensor)
 """
 import os, re, json, time, subprocess, urllib.request
 
 HA_URL    = os.environ.get("HA_URL", "")
 HA_TOKEN  = os.environ.get("HA_TOKEN", "")
-HA_NOTIFY = os.environ.get("HA_NOTIFY", "notify.notify")   # e.g. notify.mobile_app_xxx
 COOLDOWN  = 300                                            # min seconds between auto-restarts
 STATEF    = "/run/goesrecv-watchdog.state"
 LASTF     = "/run/goesrecv-watchdog.last"
@@ -25,12 +27,6 @@ def ha(path, obj):
         urllib.request.urlopen(req, timeout=10).read()
     except Exception as e:
         print("HA post error", path, e)
-
-def notify(title, msg, service=HA_NOTIFY):
-    dom, _, svc = service.partition(".")
-    ha(f"/api/services/{dom}/{svc}", {"title": title, "message": msg})
-    ha("/api/services/persistent_notification/create",
-       {"title": title, "message": msg, "notification_id": "goes_reception"})
 
 def latest_stat():
     out = subprocess.run(["journalctl", "-u", "goesrecv", "--since", "80 seconds ago", "-o", "cat"],
@@ -71,13 +67,7 @@ def main():
         if now - last >= COOLDOWN:
             open(LASTF, "w").write(str(now))
             subprocess.run(["systemctl", "restart", "goesrecv"])
-            subprocess.run(["logger", "-t", "goesrecv-watchdog", f"stall ({cur}) — restarted goesrecv"])
-            notify("⚠️ GOES-19 reception stalled",
-                   "The SDR stopped delivering samples; auto-restarted goesrecv (recovers in ~30s). "
-                   "If you keep getting this, the dongle may need a physical unplug/replug.")
-    elif prev in ("stalled", "down"):
-        notify("✅ GOES-19 reception recovered", "goesrecv re-locked; packets are flowing again.")
-        ha("/api/services/persistent_notification/dismiss", {"notification_id": "goes_reception"})
+            subprocess.run(["logger", "-t", "goesrecv-watchdog", f"stall ({cur}) -- restarted goesrecv"])
 
     open(STATEF, "w").write(cur)
 
